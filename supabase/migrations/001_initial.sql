@@ -117,6 +117,7 @@ create policy "Admins and managers can delete products"
 -- ============================================
 create table public.orders (
   id uuid primary key default gen_random_uuid(),
+  order_number int not null default 0,
   status text not null default 'pending' check (status in ('pending','paid','refunded','completed')),
   items jsonb not null default '[]',
   subtotal numeric(10,2) not null,
@@ -230,9 +231,65 @@ insert into public.products (name, price, cost, category, stock_quantity) values
   ('Smoothie',    5.50,  1.65, 'Cold Drinks', 100);
 
 -- ============================================
--- RPC FUNCTIONS (stock management)
+-- REFUNDS TABLE
+-- ============================================
+create table public.refunds (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id),
+  amount numeric(10,2) not null,
+  method text not null check (method in ('cash', 'credit')),
+  restore_inventory boolean not null default false,
+  reason text,
+  cashier_id uuid references public.profiles(id),
+  created_at timestamptz default now()
+);
+
+alter table public.refunds enable row level security;
+
+create policy "Admins can insert refunds"
+  on public.refunds for insert
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('admin', 'manager')
+    )
+  );
+
+create policy "Admins can view refunds"
+  on public.refunds for select
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('admin', 'manager')
+    )
+  );
+
+-- ============================================
+-- RPC FUNCTIONS
 -- ============================================
 
+-- Generate daily sequential order number
+create or replace function public.generate_order_number()
+returns trigger as $$
+declare
+  today_start timestamptz;
+  next_num int;
+begin
+  today_start := date_trunc('day', now());
+  select coalesce(max(order_number), 0) + 1
+    into next_num
+    from public.orders
+    where created_at >= today_start;
+  new.order_number := next_num;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger set_order_number
+  before insert on public.orders
+  for each row execute function public.generate_order_number();
+
+-- Stock management
 create or replace function public.decrement_stock(p_id uuid, qty int)
 returns void as $$
 begin

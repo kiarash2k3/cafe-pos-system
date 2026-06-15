@@ -6,6 +6,8 @@ interface ReceiptProps {
 }
 
 export default function Receipt({ order, taxRate }: ReceiptProps): string {
+  const orderNum = String(order.order_number).padStart(4, "0");
+
   const items = order.items
     .map(
       (item) =>
@@ -20,7 +22,7 @@ export default function Receipt({ order, taxRate }: ReceiptProps): string {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Receipt - ${order.id.slice(0, 8)}</title>
+      <title>Receipt - #${orderNum}</title>
       <style>
         body {
           font-family: 'Courier New', monospace;
@@ -46,7 +48,7 @@ export default function Receipt({ order, taxRate }: ReceiptProps): string {
         <p style="margin:5px 0">Receipt</p>
       </div>
       <hr>
-      <p>Order: #${order.id.slice(0, 8).toUpperCase()}</p>
+      <p>Order: #${orderNum}</p>
       <p>Date: ${new Date(order.paid_at || order.created_at).toLocaleString()}</p>
       ${order.table_number ? `<p>Table: ${order.table_number}</p>` : ""}
       <hr>

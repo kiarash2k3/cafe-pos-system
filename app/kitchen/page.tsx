@@ -109,7 +109,7 @@ export default function KitchenPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <span className="font-bold text-lg">
-                        #{order.id.slice(0, 6).toUpperCase()}
+                        #{String(order.order_number).padStart(4, "0")}
                       </span>
                       {order.table_number && (
                         <Badge variant="secondary" className="ml-2">

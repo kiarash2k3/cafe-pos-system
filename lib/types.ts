@@ -33,6 +33,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  order_number: number;
   status: OrderStatus;
   items: OrderItem[];
   subtotal: number;
@@ -48,6 +49,17 @@ export interface Order {
   paid_at: string | null;
   completed_at: string | null;
   profiles?: Pick<Profile, "full_name">;
+}
+
+export interface Refund {
+  id: string;
+  order_id: string;
+  amount: number;
+  method: PaymentType;
+  restore_inventory: boolean;
+  reason: string | null;
+  cashier_id: string;
+  created_at: string;
 }
 
 export interface Setting {

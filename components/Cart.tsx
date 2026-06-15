@@ -92,8 +92,8 @@ export default function Cart({ cashierId, taxRate }: CartProps) {
     }
 
     if (paymentType === "credit") {
-      if (!paymentRef || paymentRef.length < 4 || paymentRef.length > 8) {
-        toast.error("Transaction reference must be 4-8 digits");
+      if (!paymentRef || !/^\d{4,8}$/.test(paymentRef)) {
+        toast.error("Transaction reference must be exactly 4-8 digits (numbers only, no letters or spaces)");
         return;
       }
     }
@@ -353,17 +353,28 @@ export default function Cart({ cashierId, taxRate }: CartProps) {
 
             {paymentType === "credit" && (
               <div className="space-y-2">
-                <Label>Transaction Reference (4-8 digits)</Label>
+                <Label>Transaction Reference (4-8 digits, numbers only)</Label>
                 <Input
                   type="text"
                   maxLength={8}
                   value={paymentRef}
-                  onChange={(e) =>
-                    setPaymentRef(e.target.value.replace(/\D/g, ""))
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setPaymentRef(val);
+                  }}
                   placeholder="e.g. 12345678"
+                  pattern="[0-9]*"
                   autoFocus
                 />
+                <p className={`text-xs ${
+                  paymentRef.length >= 4 && paymentRef.length <= 8
+                    ? "text-green-600"
+                    : "text-muted-foreground"
+                }`}>
+                  {paymentRef.length}/8 digits
+                  {paymentRef.length > 0 && paymentRef.length < 4 && " (minimum 4)"}
+                  {paymentRef.length >= 4 && paymentRef.length <= 8 && " — valid"}
+                </p>
               </div>
             )}
           </div>
@@ -397,7 +408,7 @@ export default function Cart({ cashierId, taxRate }: CartProps) {
                 >
                   <div>
                     <p className="font-medium text-sm">
-                      {order.items.length} item(s) — ${order.total.toFixed(2)}
+                      #{String(order.order_number).padStart(4, "0")} — {order.items.length} item(s) — ${order.total.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {order.table_number
